@@ -9,10 +9,14 @@ import jakarta.persistence.EntityManager;
 import java.util.List;
 import org.hibernate.LazyInitializationException;
 
+import java.util.logging.Logger;
+import com.juniverse.jpa.AppLogger;
 /**
  * Estrategias de carga: LAZY, el problema N+1 y cómo resolverlo con JOIN FETCH o un EntityGraph.
  */
 public final class FetchingDemo {
+    private static final Logger LOGGER = AppLogger.get(FetchingDemo.class);
+
 
     private FetchingDemo() {
     }
@@ -29,24 +33,24 @@ public final class FetchingDemo {
         });
 
         // 1) N+1: 1 consulta para los departamentos + 1 por cada uno para sus empleados
-        long antes = JpaUtil.statements();
+        long before = JpaUtil.statements();
         JpaUtil.tx(em -> {
             List<Department> deps = em.createQuery("select d from Department d where d.name like 'Depto-%'", Department.class).getResultList();
             deps.forEach(d -> d.getEmployees().size()); // cada acceso lanza una consulta
         });
-        System.out.println("Carga perezosa (problema N+1): " + (JpaUtil.statements() - antes) + " sentencias SQL para 3 departamentos");
+        LOGGER.info("Carga perezosa (problema N+1): " + (JpaUtil.statements() - before) + " sentencias SQL para 3 departamentos");
 
         // 2) JOIN FETCH: una sola consulta
-        antes = JpaUtil.statements();
+        before = JpaUtil.statements();
         JpaUtil.tx(em -> {
             List<Department> deps = em.createQuery(
                     "select distinct d from Department d join fetch d.employees where d.name like 'Depto-%'", Department.class).getResultList();
             deps.forEach(d -> d.getEmployees().size());
         });
-        System.out.println("JOIN FETCH:                    " + (JpaUtil.statements() - antes) + " sentencia SQL");
+        LOGGER.info("JOIN FETCH:                    " + (JpaUtil.statements() - before) + " sentencia SQL");
 
         // 3) EntityGraph: lo mismo, declarado aparte de la consulta
-        antes = JpaUtil.statements();
+        before = JpaUtil.statements();
         JpaUtil.tx(em -> {
             EntityGraph<Department> graph = em.createEntityGraph(Department.class);
             graph.addSubgraph("employees");
@@ -54,7 +58,7 @@ public final class FetchingDemo {
                     .setHint("jakarta.persistence.fetchgraph", graph).getResultList();
             deps.forEach(d -> d.getEmployees().size());
         });
-        System.out.println("EntityGraph:                   " + (JpaUtil.statements() - antes) + " sentencia SQL");
+        LOGGER.info("EntityGraph:                   " + (JpaUtil.statements() - before) + " sentencia SQL");
 
         // 4) LazyInitializationException: tocar una relación perezosa con el EntityManager ya cerrado
         EntityManager em = JpaUtil.open();
@@ -63,7 +67,7 @@ public final class FetchingDemo {
         try {
             detached.getEmployees().size();
         } catch (LazyInitializationException e) {
-            System.out.println("LazyInitializationException: la relación se leyó con la sesión cerrada -> usa JOIN FETCH, EntityGraph o carga dentro de la transacción");
+            LOGGER.info("LazyInitializationException: la relación se leyó con la sesión cerrada -> usa JOIN FETCH, EntityGraph o carga dentro de la transacción");
         }
     }
 }

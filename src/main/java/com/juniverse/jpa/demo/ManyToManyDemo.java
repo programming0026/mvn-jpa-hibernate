@@ -5,8 +5,12 @@ import com.juniverse.jpa.entity.Student;
 import com.juniverse.jpa.util.JpaUtil;
 import java.util.List;
 
+import java.util.logging.Logger;
+import com.juniverse.jpa.AppLogger;
 /** Demostración de {@code @ManyToMany} con tabla intermedia. */
 public final class ManyToManyDemo {
+    private static final Logger LOGGER = AppLogger.get(ManyToManyDemo.class);
+
 
     private ManyToManyDemo() {
     }
@@ -29,14 +33,14 @@ public final class ManyToManyDemo {
             em.persist(beto);
             em.persist(carla);
         });
-        System.out.println("Estudiantes: " + JpaUtil.countRows("student") + ", cursos: " + JpaUtil.countRows("course")
+        LOGGER.info("Estudiantes: " + JpaUtil.countRows("student") + ", cursos: " + JpaUtil.countRows("course")
                 + ", filas en la tabla intermedia student_course: " + JpaUtil.countRows("student_course"));
 
         JpaUtil.tx(em -> {
-            List<String> nombres = em.createQuery(
+            List<String> names = em.createQuery(
                     "select s.name from Student s join s.courses c where c.title = :t order by s.name", String.class)
                     .setParameter("t", "Java 21").getResultList();
-            System.out.println("Estudiantes de 'Java 21': " + nombres);
+            LOGGER.info("Estudiantes de 'Java 21': " + names);
         });
 
         JpaUtil.tx(em -> {
@@ -44,7 +48,7 @@ public final class ManyToManyDemo {
             Course sql = em.createQuery("select c from Course c where c.title = 'SQL'", Course.class).getSingleResult();
             ana.drop(sql);
         });
-        System.out.println("Tras dar de baja a Ana de SQL -> filas en student_course: " + JpaUtil.countRows("student_course")
+        LOGGER.info("Tras dar de baja a Ana de SQL -> filas en student_course: " + JpaUtil.countRows("student_course")
                 + " (estudiantes y cursos siguen existiendo)");
     }
 }

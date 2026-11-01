@@ -14,6 +14,8 @@ import java.util.logging.Logger;
  * entidad de asociación y estrategias de carga.
  */
 public final class Main {
+    private static final Logger LOGGER = AppLogger.get(Main.class);
+
 
     /** Referencias fuertes: java.util.logging solo guarda referencias débiles y perdería la configuración. */
     private static final Logger[] QUIET = {
@@ -27,7 +29,7 @@ public final class Main {
     }
 
     private static void title(String text) {
-        System.out.println("\n=========== " + text + " ===========");
+        LOGGER.info("\n=========== " + text + " ===========");
     }
 
     /**

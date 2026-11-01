@@ -6,8 +6,12 @@ import com.juniverse.jpa.entity.Employee;
 import com.juniverse.jpa.util.JpaUtil;
 import java.util.List;
 
+import java.util.logging.Logger;
+import com.juniverse.jpa.AppLogger;
 /** Demostración de {@code @OneToMany} / {@code @ManyToOne}: cascada, orphanRemoval, JPQL y objeto incrustado. */
 public final class OneToManyDemo {
+    private static final Logger LOGGER = AppLogger.get(OneToManyDemo.class);
+
 
     private OneToManyDemo() {
     }
@@ -22,23 +26,23 @@ public final class OneToManyDemo {
             em.persist(it); // los tres empleados se guardan por cascade
             return it.getId();
         });
-        System.out.println("Departamentos: " + JpaUtil.countRows("department") + ", empleados: " + JpaUtil.countRows("employee"));
+        LOGGER.info("Departamentos: " + JpaUtil.countRows("department") + ", empleados: " + JpaUtil.countRows("employee"));
 
         JpaUtil.tx(em -> {
-            List<Object[]> filas = em.createQuery(
+            List<Object[]> rows = em.createQuery(
                     "select e.name, e.address.city from Employee e where e.department.name = :d order by e.name", Object[].class)
                     .setParameter("d", "Tecnología").getResultList();
-            filas.forEach(f -> System.out.println("  " + f[0] + " vive en " + f[1] + " (columnas del objeto incrustado Address)"));
+            rows.forEach(f -> LOGGER.info("  " + f[0] + " vive en " + f[1] + " (columnas del objeto incrustado Address)"));
         });
 
         JpaUtil.tx(em -> {
             Department d = em.find(Department.class, deptId);
-            Employee primero = d.getEmployees().get(0);
-            d.removeEmployee(primero); // orphanRemoval = true -> DELETE
+            Employee first = d.getEmployees().get(0);
+            d.removeEmployee(first); // orphanRemoval = true -> DELETE
         });
-        System.out.println("Tras quitar un empleado de la lista -> empleados: " + JpaUtil.countRows("employee"));
+        LOGGER.info("Tras quitar un empleado de la lista -> empleados: " + JpaUtil.countRows("employee"));
 
         JpaUtil.tx(em -> em.remove(em.find(Department.class, deptId))); // cascade REMOVE borra también a los empleados
-        System.out.println("Tras borrar el departamento -> empleados: " + JpaUtil.countRows("employee"));
+        LOGGER.info("Tras borrar el departamento -> empleados: " + JpaUtil.countRows("employee"));
     }
 }
